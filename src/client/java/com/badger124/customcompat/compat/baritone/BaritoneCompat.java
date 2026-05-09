@@ -134,8 +134,16 @@ public final class BaritoneCompat {
                         .isPresent()) {
                     return true;
                 }
-                // 2. custom_data NBT fallback (no pre-registration needed)
-                return CustomCompatApi.readCustomDataId(stack)
+                // 2. customcompat custom_data NBT fallback (no pre-registration needed)
+                if (CustomCompatApi.readCustomDataId(stack)
+                        .filter(customItemId::equals)
+                        .isPresent()) {
+                    return true;
+                }
+                // 3. Nexo plugin PublicBukkitValues NBT fallback
+                //    Item has: custom_data={PublicBukkitValues:{"nexo:id":"crop_tomato_seed"}}
+                //    Command:  /customcompat pickup nexo:crop_tomato_seed
+                return CustomCompatApi.readNexoId(stack)
                         .filter(customItemId::equals)
                         .isPresent();
             };

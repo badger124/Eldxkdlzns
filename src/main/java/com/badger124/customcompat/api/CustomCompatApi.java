@@ -46,9 +46,13 @@ import java.util.function.Predicate;
  *
  * <h2>Supported detection strategies</h2>
  * <ul>
- *   <li><b>{@code minecraft:custom_data} NBT</b> – recommended; server stores
+ *   <li><b>{@code minecraft:custom_data} NBT (customcompat)</b> – recommended; server stores
  *       {@code {customcompat:{id:"namespace:path"}}} in the stack's custom data.
  *       Use {@link #readCustomDataId(ItemStack)}.</li>
+ *   <li><b>{@code minecraft:custom_data} NBT (Nexo/Oraxen)</b> – for Nexo-based servers;
+ *       items have {@code {PublicBukkitValues:{"nexo:id":"item_name"}}} in custom_data.
+ *       Use {@link #readNexoId(ItemStack)} or just run
+ *       {@code /customcompat pickup nexo:item_name}.</li>
  *   <li><b>{@code minecraft:custom_model_data}</b> – legacy integer-based approach.
  *       Use {@link #readCustomModelDataFloat(ItemStack, int)} to read a float value.</li>
  *   <li><b>Scoreboard tags</b> – for entities, servers can add a tag like
@@ -188,6 +192,47 @@ public final class CustomCompatApi {
 
         String rawId = inner.getString(CUSTOM_DATA_ID_KEY);
         return Optional.ofNullable(Identifier.tryParse(rawId));
+    }
+
+    // =========================================================================
+    // Helper: Nexo plugin custom_data strategy
+    // =========================================================================
+
+    /**
+     * Reads a Nexo item identifier from the stack's {@code minecraft:custom_data} component.
+     *
+     * <p>Nexo (and its predecessor Oraxen) stores item IDs in
+     * {@code PublicBukkitValues} inside {@code minecraft:custom_data}:</p>
+     * <pre>{@code
+     * minecraft:custom_data={PublicBukkitValues:{"nexo:id":"crop_tomato_seed"}}
+     * }</pre>
+     *
+     * <p>This method constructs an {@link Identifier} with namespace {@code "nexo"} and
+     * the value from {@code "nexo:id"} as the path, e.g.
+     * {@code nexo:crop_tomato_seed}. The command to track such an item would be:</p>
+     * <pre>{@code
+     * /customcompat pickup nexo:crop_tomato_seed
+     * }</pre>
+     *
+     * @param stack The stack to inspect.
+     * @return The parsed {@link Identifier} (e.g. {@code nexo:crop_tomato_seed}),
+     *         or {@link Optional#empty()} if the NBT is absent or malformed.
+     */
+    public static Optional<Identifier> readNexoId(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return Optional.empty();
+        NbtComponent nbtComponent = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (nbtComponent == null) return Optional.empty();
+
+        NbtCompound root = nbtComponent.copyNbt();
+        if (!root.contains("PublicBukkitValues")) return Optional.empty();
+
+        NbtCompound publicValues = root.getCompound("PublicBukkitValues");
+        if (!publicValues.contains("nexo:id")) return Optional.empty();
+
+        String nexoItemId = publicValues.getString("nexo:id");
+        if (nexoItemId.isEmpty()) return Optional.empty();
+        // Construct "nexo:<item_id>" as the canonical Identifier
+        return Optional.ofNullable(Identifier.tryParse("nexo:" + nexoItemId));
     }
 
     // =========================================================================
