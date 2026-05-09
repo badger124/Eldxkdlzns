@@ -2,6 +2,9 @@ package com.badger124.customcompat.gui;
 
 import com.badger124.customcompat.CustomCompatMod;
 import com.badger124.customcompat.compat.baritone.BaritoneCompat;
+import com.badger124.customcompat.gui.farm.CustomFarmingHandler;
+import com.badger124.customcompat.gui.farm.FarmProfile;
+import com.badger124.customcompat.gui.farm.FarmProfileManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -29,8 +32,9 @@ import java.util.List;
  *   pickup nexo:crop_tomato_seed   – tells Baritone to pick up matching dropped items
  *   follow mymod:boss_zombie       – tells Baritone to follow matching entities
  *   farm [range]                   – starts Baritone farming (range defaults to 0 = unlimited)
+ *   farmcustom &lt;profileName&gt;      – starts custom note-block farm handler for the named profile
  *   wait  &lt;seconds&gt;               – pauses the macro for the given number of seconds
- *   stop                           – stops the macro immediately
+ *   stop                           – stops Baritone and the custom farm handler
  *   # comment                      – ignored
  * </pre>
  *
@@ -232,6 +236,23 @@ public final class MacroManager {
                         ? "[CustomCompat] Macro: farm started (range=" + range + ")"
                         : "[CustomCompat] Macro: farm failed");
             }
+            case "farmcustom" -> {
+                // arg = profile name
+                if (arg.isBlank()) {
+                    feedback(client, "[CustomCompat] Macro: farmcustom requires a profile name.");
+                    break;
+                }
+                FarmProfile target = FarmProfileManager.getInstance().getProfiles().stream()
+                        .filter(p -> p.getName().equalsIgnoreCase(arg))
+                        .findFirst()
+                        .orElse(null);
+                if (target == null) {
+                    feedback(client, "[CustomCompat] Macro: farm profile '" + arg + "' not found.");
+                } else {
+                    CustomFarmingHandler.getInstance().start(target);
+                    feedback(client, "[CustomCompat] Macro: custom farming started (" + target.getName() + ")");
+                }
+            }
             case "wait" -> {
                 int seconds = 5;
                 if (!arg.isEmpty()) {
@@ -245,6 +266,8 @@ public final class MacroManager {
             }
             case "stop" -> {
                 stopMacro();
+                CustomFarmingHandler.getInstance().stop();
+                BaritoneCompat.stop();
                 feedback(client, "[CustomCompat] Macro: stopped by 'stop' step.");
             }
             default -> CustomCompatMod.LOGGER.warn("[CustomCompat] Unknown macro step: '{}'", step);

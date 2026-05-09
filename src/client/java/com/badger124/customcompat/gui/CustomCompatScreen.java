@@ -1,6 +1,9 @@
 package com.badger124.customcompat.gui;
 
 import com.badger124.customcompat.compat.baritone.BaritoneCompat;
+import com.badger124.customcompat.gui.farm.CustomFarmingHandler;
+import com.badger124.customcompat.gui.farm.FarmProfile;
+import com.badger124.customcompat.gui.farm.FarmProfileManager;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -14,33 +17,28 @@ import java.util.List;
 /**
  * Main GUI for the Custom Content Compat mod.
  *
- * <h2>Items tab</h2>
- * <p>Enter a Nexo/custom item ID (e.g. {@code nexo:crop_tomato_seed}) and click
- * <em>Pickup</em> or <em>Follow</em> to start the corresponding Baritone action.
- * Recent IDs are kept in the scrollable list below; right-click a row to remove it.</p>
+ * <h2>Tabs</h2>
+ * <dl>
+ *   <dt>Items</dt>
+ *   <dd>Enter a Nexo/custom item ID and click Pickup / Follow / Farm / Stop to start the
+ *       corresponding Baritone action. Recent IDs are kept in a scrollable list.</dd>
  *
- * <h2>Macros tab</h2>
- * <p>Create named macros containing a sequence of steps.  Each step is one of:</p>
- * <pre>
- *   pickup nexo:crop_tomato_seed
- *   follow mymod:boss_zombie
- *   farm [range]
- *   wait &lt;seconds&gt;
- *   stop
- *   # comment
- * </pre>
- * <p>Click <em>▶ Run</em> to execute the selected macro; click <em>■ Stop</em> to abort.</p>
+ *   <dt>Macros</dt>
+ *   <dd>Create named macros with sequential steps ({@code pickup}, {@code follow},
+ *       {@code farm}, {@code farmcustom}, {@code wait}, {@code stop}).</dd>
  *
- * <h2>Opening the screen</h2>
- * <pre>
- *   /customcompat gui
- * </pre>
+ *   <dt>Farm</dt>
+ *   <dd>Configure custom note-block farmland profiles. Each profile maps note-pitch ranges
+ *       to wet/dry farmland and specifies crop block IDs, mature ages, and seed Nexo IDs
+ *       for automatic harvest-and-replant.</dd>
+ * </dl>
  */
 public final class CustomCompatScreen extends Screen {
 
     // ── Tab constants ─────────────────────────────────────────────────────────
     private static final int TAB_ITEMS  = 0;
     private static final int TAB_MACROS = 1;
+    private static final int TAB_FARM   = 2;
 
     // ── State ─────────────────────────────────────────────────────────────────
     private int activeTab = TAB_ITEMS;
@@ -55,6 +53,14 @@ public final class CustomCompatScreen extends Screen {
     private TextFieldWidget macroNameField;
     private TextFieldWidget stepField;
 
+    // Farm tab
+    private FarmProfile selectedProfile = null;
+    private TextFieldWidget farmNameField;
+    private TextFieldWidget farmRangeField;
+    private TextFieldWidget farmWetMinField;
+    private TextFieldWidget farmWetMaxField;
+    private TextFieldWidget cropLineField;
+
     // ── Colours ───────────────────────────────────────────────────────────────
     private static final int COL_BG        = 0xC0000000;
     private static final int COL_ROW       = 0x30FFFFFF;
@@ -65,11 +71,10 @@ public final class CustomCompatScreen extends Screen {
     private static final int COL_GREY      = 0xAAAAAA;
     private static final int COL_DARK      = 0x666666;
     private static final int COL_GREEN     = 0x55FF55;
+    private static final int COL_YELLOW    = 0xFFFF55;
 
     // ── Geometry helpers ──────────────────────────────────────────────────────
-    /** Y of the top of the scrollable items list. */
     private static final int ITEM_LIST_TOP_OFFSET = 92;
-    /** Height of one row in the items list. */
     private static final int ITEM_ROW_H = 18;
 
     public CustomCompatScreen() {
@@ -85,10 +90,6 @@ public final class CustomCompatScreen extends Screen {
         rebuildWidgets();
     }
 
-    /**
-     * Clears and re-creates all interactive widgets for the current tab.
-     * Called on init and whenever a tab switch or list mutation occurs.
-     */
     private void rebuildWidgets() {
         clearChildren();
 
@@ -97,19 +98,21 @@ public final class CustomCompatScreen extends Screen {
         // ── Common: tab buttons + close ──────────────────────────────────────
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Items"), b -> switchTab(TAB_ITEMS))
-                        .dimensions(cx - 105, 13, 100, 20).build());
+                        .dimensions(cx - 160, 13, 95, 20).build());
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Macros"), b -> switchTab(TAB_MACROS))
-                        .dimensions(cx + 5, 13, 100, 20).build());
+                        .dimensions(cx - 60, 13, 95, 20).build());
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal("Farm"), b -> switchTab(TAB_FARM))
+                        .dimensions(cx + 40, 13, 95, 20).build());
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("✕"), b -> close())
                         .dimensions(width - 24, 4, 20, 20).build());
 
-        // ── Tab-specific ──────────────────────────────────────────────────────
-        if (activeTab == TAB_ITEMS) {
-            initItemsTab();
-        } else {
-            initMacrosTab();
+        switch (activeTab) {
+            case TAB_ITEMS  -> initItemsTab();
+            case TAB_MACROS -> initMacrosTab();
+            case TAB_FARM   -> initFarmTab();
         }
     }
 
@@ -126,13 +129,11 @@ public final class CustomCompatScreen extends Screen {
         int cx = width / 2;
         int y  = 40;
 
-        // ID input field
         idField = new TextFieldWidget(textRenderer, cx - 150, y, 240, 20, Text.empty());
         idField.setMaxLength(128);
         idField.setPlaceholderText(Text.literal("nexo:crop_tomato_seed  or  mymod:item"));
         addDrawableChild(idField);
 
-        // Action buttons — right side of the field
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Pickup"), b -> doPickup())
                         .dimensions(cx + 96, y, 58, 20).build());
@@ -140,7 +141,6 @@ public final class CustomCompatScreen extends Screen {
                 ButtonWidget.builder(Text.literal("Follow"), b -> doFollow())
                         .dimensions(cx + 96, y + 22, 58, 20).build());
 
-        // Farm / Stop — left of field
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Farm"), b -> BaritoneCompat.farm(0))
                         .dimensions(cx - 150, y + 22, 55, 20).build());
@@ -148,7 +148,6 @@ public final class CustomCompatScreen extends Screen {
                 ButtonWidget.builder(Text.literal("Stop"), b -> BaritoneCompat.stop())
                         .dimensions(cx - 91, y + 22, 55, 20).build());
 
-        // Scroll arrows for the recent-IDs list
         int listTop = ITEM_LIST_TOP_OFFSET;
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("▲"), b -> scrollItems(-1))
@@ -204,7 +203,6 @@ public final class CustomCompatScreen extends Screen {
         MacroManager mgr = MacroManager.getInstance();
         int topY = 40;
 
-        // Left-panel controls
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("+ New"), b -> {
                     MacroEntry e = new MacroEntry("Macro " + (mgr.getMacros().size() + 1));
@@ -234,11 +232,9 @@ public final class CustomCompatScreen extends Screen {
                     rebuildWidgets();
                 }).dimensions(148, topY, 70, 20).build());
 
-        // Right-panel editor (only when a macro is selected)
         if (selectedMacro != null) {
             int rx = width / 2 + 10;
 
-            // Name field + save
             macroNameField = new TextFieldWidget(textRenderer, rx, topY, 155, 20, Text.empty());
             macroNameField.setMaxLength(64);
             macroNameField.setText(selectedMacro.getName());
@@ -253,11 +249,10 @@ public final class CustomCompatScreen extends Screen {
                         }
                     }).dimensions(rx + 159, topY, 50, 20).build());
 
-            // Add-step field + buttons near the bottom
             int ay = height - 50;
             stepField = new TextFieldWidget(textRenderer, rx, ay, 175, 20, Text.empty());
             stepField.setMaxLength(128);
-            stepField.setPlaceholderText(Text.literal("pickup nexo:<id>   wait 5   farm   stop"));
+            stepField.setPlaceholderText(Text.literal("pickup nexo:<id>   farmcustom <name>   wait 5"));
             addDrawableChild(stepField);
 
             addDrawableChild(
@@ -266,7 +261,6 @@ public final class CustomCompatScreen extends Screen {
                             selectedMacro.getSteps().add(stepField.getText().trim());
                             mgr.updateMacro(selectedMacro);
                             stepField.setText("");
-                            // no full rebuild needed – just redraw
                         }
                     }).dimensions(rx + 179, ay, 40, 20).build());
 
@@ -282,6 +276,135 @@ public final class CustomCompatScreen extends Screen {
     }
 
     // =========================================================================
+    // Farm tab — widget init
+    // =========================================================================
+
+    private void initFarmTab() {
+        FarmProfileManager mgr = FarmProfileManager.getInstance();
+        CustomFarmingHandler handler = CustomFarmingHandler.getInstance();
+        int topY = 40;
+
+        // Left-panel controls
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal("+ New"), b -> {
+                    FarmProfile p = new FarmProfile("Farm " + (mgr.getProfiles().size() + 1));
+                    mgr.addProfile(p);
+                    selectedProfile = p;
+                    rebuildWidgets();
+                }).dimensions(10, topY, 70, 20).build());
+
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal("Delete"), b -> {
+                    if (selectedProfile != null) {
+                        if (handler.isActive() && handler.getActiveProfile() == selectedProfile) {
+                            handler.stop();
+                        }
+                        mgr.removeProfile(selectedProfile);
+                        List<FarmProfile> list = mgr.getProfiles();
+                        selectedProfile = list.isEmpty() ? null : list.get(0);
+                        rebuildWidgets();
+                    }
+                }).dimensions(84, topY, 60, 20).build());
+
+        boolean farming = handler.isActive();
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal(farming ? "■ Stop" : "▶ Start"), b -> {
+                    if (handler.isActive()) {
+                        handler.stop();
+                    } else if (selectedProfile != null) {
+                        handler.start(selectedProfile);
+                    }
+                    rebuildWidgets();
+                }).dimensions(148, topY, 80, 20).build());
+
+        // Right-panel editor (only when a profile is selected)
+        if (selectedProfile != null) {
+            int rx = width / 2 + 10;
+
+            // Name + Save
+            farmNameField = new TextFieldWidget(textRenderer, rx, topY, 120, 20, Text.empty());
+            farmNameField.setMaxLength(64);
+            farmNameField.setText(selectedProfile.getName());
+            addDrawableChild(farmNameField);
+
+            addDrawableChild(
+                    ButtonWidget.builder(Text.literal("Save"), b -> saveFarmProfile()).dimensions(rx + 124, topY, 44, 20).build());
+
+            // Range field
+            farmRangeField = new TextFieldWidget(textRenderer, rx + 10, topY + 26, 40, 18, Text.empty());
+            farmRangeField.setMaxLength(3);
+            farmRangeField.setText(String.valueOf(selectedProfile.getRange()));
+            addDrawableChild(farmRangeField);
+
+            // Wet pitch min / max
+            farmWetMinField = new TextFieldWidget(textRenderer, rx + 10, topY + 50, 30, 18, Text.empty());
+            farmWetMinField.setMaxLength(2);
+            farmWetMinField.setText(String.valueOf(selectedProfile.getWetPitchMin()));
+            addDrawableChild(farmWetMinField);
+
+            farmWetMaxField = new TextFieldWidget(textRenderer, rx + 50, topY + 50, 30, 18, Text.empty());
+            farmWetMaxField.setMaxLength(2);
+            farmWetMaxField.setText(String.valueOf(selectedProfile.getWetPitchMax()));
+            addDrawableChild(farmWetMaxField);
+
+            // Skip dry toggle
+            addDrawableChild(
+                    ButtonWidget.builder(
+                            Text.literal("Skip dry: " + (selectedProfile.isSkipDry() ? "ON" : "OFF")),
+                            b -> {
+                                selectedProfile.setSkipDry(!selectedProfile.isSkipDry());
+                                mgr.update();
+                                rebuildWidgets();
+                            }).dimensions(rx + 90, topY + 48, 80, 20).build());
+
+            // Crop line editor near bottom
+            int ay = height - 50;
+            cropLineField = new TextFieldWidget(textRenderer, rx, ay, 180, 20, Text.empty());
+            cropLineField.setMaxLength(200);
+            cropLineField.setPlaceholderText(Text.literal("<blockId> <age> <nexo:seedId>"));
+            addDrawableChild(cropLineField);
+
+            addDrawableChild(
+                    ButtonWidget.builder(Text.literal("Add"), b -> {
+                        if (cropLineField != null && !cropLineField.getText().isBlank()) {
+                            selectedProfile.getCropLines().add(cropLineField.getText().trim());
+                            mgr.update();
+                            cropLineField.setText("");
+                        }
+                    }).dimensions(rx + 184, ay, 38, 20).build());
+
+            addDrawableChild(
+                    ButtonWidget.builder(Text.literal("Del"), b -> {
+                        List<String> lines = selectedProfile.getCropLines();
+                        if (!lines.isEmpty()) {
+                            lines.remove(lines.size() - 1);
+                            mgr.update();
+                        }
+                    }).dimensions(rx + 226, ay, 38, 20).build());
+        }
+    }
+
+    private void saveFarmProfile() {
+        if (selectedProfile == null) return;
+        FarmProfileManager mgr = FarmProfileManager.getInstance();
+        if (farmNameField  != null) selectedProfile.setName(farmNameField.getText());
+        if (farmRangeField != null) {
+            try { selectedProfile.setRange(Integer.parseInt(farmRangeField.getText().trim())); }
+            catch (NumberFormatException ignored) {}
+        }
+        if (farmWetMinField != null) {
+            try { selectedProfile.setWetPitchMin(Integer.parseInt(farmWetMinField.getText().trim())); }
+            catch (NumberFormatException ignored) {}
+        }
+        if (farmWetMaxField != null) {
+            try { selectedProfile.setWetPitchMax(Integer.parseInt(farmWetMaxField.getText().trim())); }
+            catch (NumberFormatException ignored) {}
+        }
+        mgr.update();
+        rebuildWidgets();
+    }
+
+    // =========================================================================
     // Rendering
     // =========================================================================
 
@@ -290,17 +413,20 @@ public final class CustomCompatScreen extends Screen {
         renderBackground(ctx, mouseX, mouseY, delta);
         super.render(ctx, mouseX, mouseY, delta);
 
-        // Title
         ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 3, COL_WHITE);
 
         // Active-tab underline
-        int tabX = (activeTab == TAB_ITEMS ? width / 2 - 105 : width / 2 + 5);
-        ctx.fill(tabX, 34, tabX + 100, 35, 0xFFFFFFFF);
+        int tabX = switch (activeTab) {
+            case TAB_ITEMS  -> width / 2 - 160;
+            case TAB_MACROS -> width / 2 - 60;
+            default         -> width / 2 + 40;
+        };
+        ctx.fill(tabX, 34, tabX + 95, 35, 0xFFFFFFFF);
 
-        if (activeTab == TAB_ITEMS) {
-            renderItemsTab(ctx, mouseX, mouseY);
-        } else {
-            renderMacrosTab(ctx, mouseX, mouseY);
+        switch (activeTab) {
+            case TAB_ITEMS  -> renderItemsTab(ctx, mouseX, mouseY);
+            case TAB_MACROS -> renderMacrosTab(ctx, mouseX, mouseY);
+            case TAB_FARM   -> renderFarmTab(ctx, mouseX, mouseY);
         }
     }
 
@@ -309,7 +435,6 @@ public final class CustomCompatScreen extends Screen {
     private void renderItemsTab(DrawContext ctx, int mouseX, int mouseY) {
         int lt = ITEM_LIST_TOP_OFFSET;
 
-        // Section header
         ctx.drawHorizontalLine(10, width - 28, lt - 6, COL_DIVIDER);
         ctx.drawTextWithShadow(textRenderer,
                 Text.literal("Recent IDs  (right-click to remove):"),
@@ -331,7 +456,6 @@ public final class CustomCompatScreen extends Screen {
             ctx.drawTextWithShadow(textRenderer, Text.literal(id), 16, y + 4, COL_WHITE);
         }
 
-        // Scroll indicator
         if (recentIds.size() > visible) {
             ctx.drawTextWithShadow(textRenderer,
                     Text.literal((itemScrollOffset + 1) + "-"
@@ -347,7 +471,6 @@ public final class CustomCompatScreen extends Screen {
         MacroManager mgr = MacroManager.getInstance();
         List<MacroEntry> macros = mgr.getMacros();
 
-        // Left panel background
         int lx = 10, ly = 66, lw = width / 2 - 15, lh = height - ly - 10;
         ctx.fill(lx, ly, lx + lw, ly + lh, COL_BG);
         ctx.drawTextWithShadow(textRenderer, Text.literal("Macros:"), lx + 4, ly + 3, COL_GREY);
@@ -371,7 +494,6 @@ public final class CustomCompatScreen extends Screen {
                     lx + 6, innerY + 5, COL_DARK);
         }
 
-        // Right panel
         int rx = width / 2 + 10, ry = 66, rw = width - rx - 10;
         ctx.fill(rx, ry, rx + rw, ry + lh, COL_BG);
 
@@ -382,10 +504,9 @@ public final class CustomCompatScreen extends Screen {
         } else {
             ctx.drawTextWithShadow(textRenderer, Text.literal("Steps:"), rx + 4, ry + 3, COL_GREY);
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("pickup <id>  |  follow <id>  |  farm [n]  |  wait <s>  |  stop"),
+                    Text.literal("pickup <id>  follow <id>  farm [n]  farmcustom <name>  wait <s>  stop"),
                     rx + 4, ry + 13, COL_DARK);
 
-            // Step list
             int sy = ry + 26;
             List<String> steps = selectedMacro.getSteps();
             int activeStep = (mgr.isRunning() && mgr.getActiveMacro() == selectedMacro)
@@ -409,16 +530,105 @@ public final class CustomCompatScreen extends Screen {
                         rx + 4, ry + 26, COL_DARK);
             }
 
-            // Add-step label
             ctx.drawTextWithShadow(textRenderer,
                     Text.literal("Add step:"), rx + 4, height - 65, COL_GREY);
         }
 
-        // Running status bar
         if (mgr.isRunning() && mgr.getActiveMacro() != null) {
             MacroEntry act = mgr.getActiveMacro();
             String status = "▶ " + act.getName()
                     + "  step " + mgr.getStepIndex() + " / " + act.getSteps().size();
+            ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(status),
+                    width / 2, height - 8, COL_GREEN);
+        }
+    }
+
+    // ── Farm tab rendering ────────────────────────────────────────────────────
+
+    private void renderFarmTab(DrawContext ctx, int mouseX, int mouseY) {
+        FarmProfileManager mgr = FarmProfileManager.getInstance();
+        CustomFarmingHandler handler = CustomFarmingHandler.getInstance();
+        List<FarmProfile> profiles = mgr.getProfiles();
+
+        int lx = 10, ly = 66, lw = width / 2 - 15, lh = height - ly - 10;
+        ctx.fill(lx, ly, lx + lw, ly + lh, COL_BG);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("Farm Profiles:"), lx + 4, ly + 3, COL_GREY);
+
+        int rowH = 20, innerY = ly + 16;
+        for (int i = 0; i < profiles.size(); i++) {
+            FarmProfile p = profiles.get(i);
+            int y = innerY + i * rowH;
+            if (y + rowH > ly + lh) break;
+            boolean sel   = p == selectedProfile;
+            boolean hover = mouseX >= lx && mouseX < lx + lw && mouseY >= y && mouseY < y + rowH;
+            boolean active = handler.isActive() && handler.getActiveProfile() == p;
+            ctx.fill(lx, y, lx + lw, y + rowH - 1,
+                    sel ? COL_ROW_SEL : (hover ? COL_ROW_HOVER : COL_ROW));
+            String label = (active ? "▶ " : "") + p.getName();
+            ctx.drawTextWithShadow(textRenderer, Text.literal(label),
+                    lx + 6, y + 5, active ? COL_GREEN : (sel ? 0x000000 : COL_WHITE));
+        }
+
+        if (profiles.isEmpty()) {
+            ctx.drawTextWithShadow(textRenderer,
+                    Text.literal("Click '+ New' to create a farm profile."),
+                    lx + 6, innerY + 5, COL_DARK);
+        }
+
+        // Right panel
+        int rx = width / 2 + 10, ry = 66, rw = width - rx - 10;
+        ctx.fill(rx, ry, rx + rw, ry + lh, COL_BG);
+
+        if (selectedProfile == null) {
+            ctx.drawCenteredTextWithShadow(textRenderer,
+                    Text.literal("Select a profile on the left."),
+                    rx + rw / 2, ry + lh / 2, COL_DARK);
+        } else {
+            int topY = 40;
+            // Labels for fields
+            ctx.drawTextWithShadow(textRenderer, Text.literal("Range:"), rx, topY + 29, COL_GREY);
+            ctx.drawTextWithShadow(textRenderer, Text.literal("Wet pitch:"), rx, topY + 53, COL_GREY);
+            ctx.drawTextWithShadow(textRenderer, Text.literal("–"), rx + 44, topY + 53, COL_GREY);
+
+            // Crop mappings header
+            ctx.drawHorizontalLine(rx, rx + rw - 2, ry + 80, COL_DIVIDER);
+            ctx.drawTextWithShadow(textRenderer,
+                    Text.literal("Crops  (blockId  matureAge  nexo:seedId):"),
+                    rx + 2, ry + 83, COL_GREY);
+            ctx.drawTextWithShadow(textRenderer,
+                    Text.literal("Use -1 as matureAge to harvest any age. # = comment."),
+                    rx + 2, ry + 93, COL_DARK);
+
+            // Crop lines list
+            List<String> cropLines = selectedProfile.getCropLines();
+            int sy = ry + 104;
+            for (int i = 0; i < cropLines.size(); i++) {
+                if (sy + 12 > height - 58) {
+                    ctx.drawTextWithShadow(textRenderer,
+                            Text.literal("… " + (cropLines.size() - i) + " more"),
+                            rx + 2, sy, COL_DARK);
+                    break;
+                }
+                ctx.drawTextWithShadow(textRenderer, Text.literal((i + 1) + ". " + cropLines.get(i)),
+                        rx + 2, sy, COL_WHITE);
+                sy += 12;
+            }
+            if (cropLines.isEmpty()) {
+                ctx.drawTextWithShadow(textRenderer,
+                        Text.literal("No crop mappings yet. Add one below."),
+                        rx + 2, ry + 104, COL_DARK);
+            }
+
+            // Add-line label
+            ctx.drawTextWithShadow(textRenderer,
+                    Text.literal("Add crop mapping:"), rx + 2, height - 65, COL_GREY);
+        }
+
+        // Status bar
+        if (handler.isActive() && handler.getActiveProfile() != null) {
+            String status = "▶ Farming: " + handler.getActiveProfile().getName()
+                    + "  (note pitch " + handler.getActiveProfile().getWetPitchMin()
+                    + "-" + handler.getActiveProfile().getWetPitchMax() + " = wet)";
             ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(status),
                     width / 2, height - 8, COL_GREEN);
         }
@@ -440,6 +650,22 @@ public final class CustomCompatScreen extends Screen {
                 if (y + rowH > height - 10) break;
                 if (mx >= lx && mx < lx + lw && my >= y && my < y + rowH) {
                     selectedMacro = macros.get(i);
+                    rebuildWidgets();
+                    return true;
+                }
+            }
+        }
+
+        // Farm profile list: left-click to select
+        if (activeTab == TAB_FARM) {
+            FarmProfileManager mgr = FarmProfileManager.getInstance();
+            List<FarmProfile> profiles = mgr.getProfiles();
+            int lx = 10, ly = 66 + 16, lw = width / 2 - 15, rowH = 20;
+            for (int i = 0; i < profiles.size(); i++) {
+                int y = ly + i * rowH;
+                if (y + rowH > height - 10) break;
+                if (mx >= lx && mx < lx + lw && my >= y && my < y + rowH) {
+                    selectedProfile = profiles.get(i);
                     rebuildWidgets();
                     return true;
                 }
@@ -473,7 +699,6 @@ public final class CustomCompatScreen extends Screen {
 
     @Override
     public boolean shouldPause() {
-        // Keep the game running while the screen is open (world is still visible).
         return false;
     }
 }

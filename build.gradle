@@ -35,6 +35,10 @@ dependencies {
 
     // Fabric API
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Baritone API — compile-only; not bundled in the output jar.
+    // At runtime the player provides a compatible Baritone jar in their mods/ folder.
+    modCompileOnly files('baritone-api-fabric-1.11.1-5-g3fdb7438.jar')
 }
 
 processResources {

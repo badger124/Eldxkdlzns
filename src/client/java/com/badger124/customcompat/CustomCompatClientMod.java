@@ -3,6 +3,8 @@ package com.badger124.customcompat;
 import com.badger124.customcompat.compat.baritone.BaritoneCompat;
 import com.badger124.customcompat.gui.CustomCompatScreen;
 import com.badger124.customcompat.gui.MacroManager;
+import com.badger124.customcompat.gui.farm.CustomFarmingHandler;
+import com.badger124.customcompat.gui.farm.FarmProfileManager;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
@@ -54,6 +56,12 @@ public final class CustomCompatClientMod implements ClientModInitializer {
     public void onInitializeClient() {
         // Initialize the macro manager (registers its own tick listener + loads save file)
         MacroManager.getInstance().initialize(FabricLoader.getInstance().getConfigDir());
+
+        // Initialize the farm profile manager
+        FarmProfileManager.getInstance().initialize(FabricLoader.getInstance().getConfigDir());
+
+        // Register the custom farming handler tick
+        ClientTickEvents.END_CLIENT_TICK.register(client -> CustomFarmingHandler.getInstance().tick(client));
 
         // Register the GUI key binding (unbound by default; configurable in Options → Controls)
         guiKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
