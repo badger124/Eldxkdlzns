@@ -270,7 +270,7 @@ public final class CustomCompatApi {
     public static Optional<Identifier> readEntityTagId(Entity entity, String expectedPath) {
         if (entity == null || expectedPath == null) return Optional.empty();
         String expectedTag = ENTITY_TAG_PREFIX + expectedPath;
-        if (entity.getScoreboardTags().contains(expectedTag)) {
+        if (entity.getCommandTags().contains(expectedTag)) {
             return Optional.ofNullable(Identifier.tryParse(expectedPath));
         }
         return Optional.empty();
@@ -285,7 +285,7 @@ public final class CustomCompatApi {
      */
     public static Optional<Identifier> readFirstEntityTagId(Entity entity) {
         if (entity == null) return Optional.empty();
-        for (String tag : entity.getScoreboardTags()) {
+        for (String tag : entity.getCommandTags()) {
             if (tag.startsWith(ENTITY_TAG_PREFIX)) {
                 String rawId = tag.substring(ENTITY_TAG_PREFIX.length());
                 Optional<Identifier> parsed = Optional.ofNullable(Identifier.tryParse(rawId));
