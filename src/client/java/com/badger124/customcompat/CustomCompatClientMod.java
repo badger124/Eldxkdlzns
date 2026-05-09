@@ -1,12 +1,22 @@
 package com.badger124.customcompat;
 
 import com.badger124.customcompat.compat.baritone.BaritoneCompat;
+import com.badger124.customcompat.gui.CustomCompatScreen;
+import com.badger124.customcompat.gui.MacroManager;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * Client-side initializer for Custom Content Compat.
@@ -15,6 +25,9 @@ import net.minecraft.util.Identifier;
  *
  * <h2>Client commands</h2>
  * <pre>
+ *   /customcompat gui
+ *       – Opens the GUI screen (item tracker + macro editor).
+ *
  *   /customcompat follow &lt;customEntityId&gt;
  *       – Tells Baritone to follow entities matching the custom ID.
  *
@@ -23,12 +36,40 @@ import net.minecraft.util.Identifier;
  *
  *   /customcompat farm [range]
  *       – Starts Baritone's farming process (range defaults to 0 = unlimited).
+ *
+ *   /customcompat stop
+ *       – Stops all active Baritone processes.
  * </pre>
+ *
+ * <h2>Key binding</h2>
+ * <p>A key binding (unbound by default, category {@code CustomCompat}) opens the GUI.
+ * It can be assigned in <em>Options → Controls</em>.</p>
  */
 public final class CustomCompatClientMod implements ClientModInitializer {
 
+    /** Key binding that opens the CustomCompat GUI screen. */
+    private static KeyBinding guiKey;
+
     @Override
     public void onInitializeClient() {
+        // Initialize the macro manager (registers its own tick listener + loads save file)
+        MacroManager.getInstance().initialize(FabricLoader.getInstance().getConfigDir());
+
+        // Register the GUI key binding (unbound by default; configurable in Options → Controls)
+        guiKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.customcompat.gui",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_UNKNOWN,
+                "CustomCompat"
+        ));
+
+        // Poll the key binding each tick to open the screen
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (guiKey.wasPressed() && client.currentScreen == null) {
+                client.setScreen(new CustomCompatScreen());
+            }
+        });
+
         registerCommands();
         CustomCompatMod.LOGGER.info("[CustomCompat] Client initialized.");
     }
@@ -38,6 +79,13 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                 dispatcher.register(
                         ClientCommandManager.literal("customcompat")
 
+                                // /customcompat gui
+                                .then(ClientCommandManager.literal("gui")
+                                        .executes(ctx -> {
+                                            MinecraftClient.getInstance().setScreen(new CustomCompatScreen());
+                                            return 1;
+                                        }))
+
                                 // /customcompat follow <customEntityId>
                                 .then(ClientCommandManager.literal("follow")
                                         .then(ClientCommandManager.argument("id", StringArgumentType.string())
@@ -46,19 +94,19 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                                     Identifier id = Identifier.tryParse(raw);
                                                     if (id == null) {
                                                         ctx.getSource().sendError(
-                                                                net.minecraft.text.Text.literal(
+                                                                Text.literal(
                                                                         "[CustomCompat] Invalid identifier: " + raw));
                                                         return 0;
                                                     }
                                                     if (!BaritoneCompat.isLoaded()) {
                                                         ctx.getSource().sendError(
-                                                                net.minecraft.text.Text.literal(
+                                                                Text.literal(
                                                                         "[CustomCompat] Baritone is not installed."));
                                                         return 0;
                                                     }
                                                     boolean started = BaritoneCompat.followCustomEntity(id);
                                                     ctx.getSource().sendFeedback(
-                                                            net.minecraft.text.Text.literal(started
+                                                            Text.literal(started
                                                                     ? "[CustomCompat] Following custom entity: " + id
                                                                     : "[CustomCompat] Failed to start follow for: " + id));
                                                     return started ? 1 : 0;
@@ -72,19 +120,19 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                                     Identifier id = Identifier.tryParse(raw);
                                                     if (id == null) {
                                                         ctx.getSource().sendError(
-                                                                net.minecraft.text.Text.literal(
+                                                                Text.literal(
                                                                         "[CustomCompat] Invalid identifier: " + raw));
                                                         return 0;
                                                     }
                                                     if (!BaritoneCompat.isLoaded()) {
                                                         ctx.getSource().sendError(
-                                                                net.minecraft.text.Text.literal(
+                                                                Text.literal(
                                                                         "[CustomCompat] Baritone is not installed."));
                                                         return 0;
                                                     }
                                                     boolean started = BaritoneCompat.pickupCustomItems(id);
                                                     ctx.getSource().sendFeedback(
-                                                            net.minecraft.text.Text.literal(started
+                                                            Text.literal(started
                                                                     ? "[CustomCompat] Picking up custom items: " + id
                                                                     : "[CustomCompat] Failed to start pickup for: " + id));
                                                     return started ? 1 : 0;
@@ -95,13 +143,13 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                         .executes(ctx -> {
                                             if (!BaritoneCompat.isLoaded()) {
                                                 ctx.getSource().sendError(
-                                                        net.minecraft.text.Text.literal(
+                                                        Text.literal(
                                                                 "[CustomCompat] Baritone is not installed."));
                                                 return 0;
                                             }
                                             boolean started = BaritoneCompat.farm(0);
                                             ctx.getSource().sendFeedback(
-                                                    net.minecraft.text.Text.literal(started
+                                                    Text.literal(started
                                                             ? "[CustomCompat] Baritone farming started (unlimited range)."
                                                             : "[CustomCompat] Failed to start Baritone farming."));
                                             return started ? 1 : 0;
@@ -110,18 +158,35 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                                 .executes(ctx -> {
                                                     if (!BaritoneCompat.isLoaded()) {
                                                         ctx.getSource().sendError(
-                                                                net.minecraft.text.Text.literal(
+                                                                Text.literal(
                                                                         "[CustomCompat] Baritone is not installed."));
                                                         return 0;
                                                     }
                                                     int range = IntegerArgumentType.getInteger(ctx, "range");
                                                     boolean started = BaritoneCompat.farm(range);
                                                     ctx.getSource().sendFeedback(
-                                                            net.minecraft.text.Text.literal(started
+                                                            Text.literal(started
                                                                     ? "[CustomCompat] Baritone farming started (range=" + range + ")."
                                                                     : "[CustomCompat] Failed to start Baritone farming."));
                                                     return started ? 1 : 0;
                                                 })))
+
+                                // /customcompat stop
+                                .then(ClientCommandManager.literal("stop")
+                                        .executes(ctx -> {
+                                            if (!BaritoneCompat.isLoaded()) {
+                                                ctx.getSource().sendError(
+                                                        Text.literal(
+                                                                "[CustomCompat] Baritone is not installed."));
+                                                return 0;
+                                            }
+                                            boolean stopped = BaritoneCompat.stop();
+                                            ctx.getSource().sendFeedback(
+                                                    Text.literal(stopped
+                                                            ? "[CustomCompat] Baritone stopped."
+                                                            : "[CustomCompat] Failed to stop Baritone."));
+                                            return stopped ? 1 : 0;
+                                        }))
                 )
         );
     }

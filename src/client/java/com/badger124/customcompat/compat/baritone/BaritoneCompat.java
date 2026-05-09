@@ -155,6 +155,30 @@ public final class BaritoneCompat {
     }
 
     /**
+     * Cancels all active Baritone processes (follow, farm, pathing, etc.).
+     *
+     * <p>Calls {@code IPathingBehavior.cancelEverything()} via reflection.
+     * Safe to call even when Baritone is not installed.</p>
+     *
+     * @return {@code true} if the stop command was issued successfully.
+     */
+    public static boolean stop() {
+        if (!LOADED) return false;
+        try {
+            Class<?> apiClass = Class.forName("baritone.api.BaritoneAPI");
+            Object provider = apiClass.getMethod("getProvider").invoke(null);
+            Object baritone = provider.getClass().getMethod("getPrimaryBaritone").invoke(provider);
+            Object pathingBehavior = baritone.getClass().getMethod("getPathingBehavior").invoke(baritone);
+            pathingBehavior.getClass().getMethod("cancelEverything").invoke(pathingBehavior);
+            CustomCompatMod.LOGGER.info("[CustomCompat] Baritone stopped.");
+            return true;
+        } catch (Exception e) {
+            CustomCompatMod.LOGGER.error("[CustomCompat] Baritone stop failed", e);
+            return false;
+        }
+    }
+
+    /**
      * Starts Baritone's farming process within the given block radius.
      *
      * <p>Baritone's farming logic targets block states (wheat, carrots, potatoes, etc.).
