@@ -139,6 +139,59 @@ CustomEntityDetectedCallback.EVENT.register((entity, id) -> {
 
 ---
 
+## Baritone Integration (Optional)
+
+When [Baritone](https://github.com/cabaletta/baritone) is installed, Custom Content Compat
+automatically enables an integration layer that lets Baritone **farm** and **track/follow**
+custom resource-pack content.
+
+### How it works
+
+| Feature | Baritone API | Notes |
+|---------|-------------|-------|
+| Follow custom entity | `IFollowProcess.follow(Predicate<Entity>)` | Predicate resolved from your registered custom entity entries |
+| Pick up custom items | `IFollowProcess.pickup(Predicate<ItemStack>)` | Predicate resolved from your registered custom item entries |
+| Farm crops | `IFarmProcess.farm(int range)` | Vanilla block states unchanged — Baritone's crop logic applies as-is |
+
+The integration uses **reflection** so the mod loads cleanly even without Baritone.
+
+### Client commands
+
+| Command | Effect |
+|---------|--------|
+| `/customcompat follow mymod:boss_zombie` | Tells Baritone to chase all entities matching that custom ID |
+| `/customcompat pickup mymod:magic_sword` | Tells Baritone to pick up dropped items matching that custom ID |
+| `/customcompat farm` | Starts Baritone farming (unlimited range) |
+| `/customcompat farm 64` | Starts Baritone farming within 64 blocks |
+
+### Programmatic usage
+
+```java
+import com.badger124.customcompat.compat.baritone.BaritoneCompat;
+
+if (BaritoneCompat.isLoaded()) {
+    // Follow all entities tagged as "mymod:boss_zombie"
+    BaritoneCompat.followCustomEntity(Identifier.of("mymod", "boss_zombie"));
+
+    // Pick up dropped items identified as "mymod:magic_sword"
+    BaritoneCompat.pickupCustomItems(Identifier.of("mymod", "magic_sword"));
+
+    // Start farming nearby crops
+    BaritoneCompat.farm(64);
+}
+```
+
+### Limitations
+
+- Baritone's farming uses vanilla block states; resource-pack texture/model overrides do
+  not change what Baritone considers a farmable crop.
+- The follow/pickup predicates only match entities/items that have been explicitly
+  registered in `CustomCompatApi`. Unregistered custom content is invisible to this layer.
+- Baritone must be installed and initialised before any of the above calls are made
+  (this is always satisfied during normal gameplay after world join).
+
+---
+
 ## How Custom Item/Entity Mapping Works
 
 ### Items

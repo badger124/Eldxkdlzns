@@ -20,7 +20,7 @@ public final class CustomCompatMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        LOGGER.info("[CustomContentCompat] Initialized. Ready for custom item/entity registrations.");
+        LOGGER.info("[CustomCompat] Initialized. Ready for custom item/entity registrations.");
 
         // Debug listeners – only active when assertions are enabled (-ea JVM flag).
         // Remove or guard these behind a config option for production builds.
@@ -34,9 +34,9 @@ public final class CustomCompatMod implements ModInitializer {
      */
     private static boolean registerDebugListeners() {
         CustomItemDetectedCallback.EVENT.register((stack, id) ->
-                LOGGER.debug("[CustomContentCompat] Custom item detected: {} -> {}", stack, id));
+                LOGGER.debug("[CustomCompat] Custom item detected: {} -> {}", stack, id));
         CustomEntityDetectedCallback.EVENT.register((entity, id) ->
-                LOGGER.debug("[CustomContentCompat] Custom entity detected: {} -> {}", entity, id));
+                LOGGER.debug("[CustomCompat] Custom entity detected: {} -> {}", entity, id));
         return true;
     }
 }

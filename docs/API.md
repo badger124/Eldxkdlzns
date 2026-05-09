@@ -8,7 +8,8 @@
 
 ```
 com.badger124.customcompat
-├── CustomCompatMod              – Fabric ModInitializer (internal)
+├── CustomCompatMod              – Fabric ModInitializer (common, internal)
+├── CustomCompatClientMod        – Fabric ClientModInitializer (client, registers commands)
 ├── api/
 │   ├── CustomCompatApi          – Static public API entry point
 │   ├── CustomItemEntry          – Record: (Identifier, Predicate<ItemStack>)
@@ -16,6 +17,9 @@ com.badger124.customcompat
 │   └── event/
 │       ├── CustomItemDetectedCallback   – Fabric event
 │       └── CustomEntityDetectedCallback – Fabric event
+├── compat/
+│   └── baritone/
+│       └── BaritoneCompat       – Optional Baritone follow/farm bridge (client)
 └── impl/
     └── CustomCompatRegistryImpl  – Internal registry (not public API)
 ```
@@ -183,3 +187,72 @@ CustomCompatApi.registerItem(
 
 After registration, any other code that calls `CustomCompatApi.getCustomItemId(stack)`
 will receive `coolitemsmod:frost_axe` back — bridging the two APIs transparently.
+
+---
+
+## `BaritoneCompat` — Baritone Integration (Optional, Client-only)
+
+`com.badger124.customcompat.compat.baritone.BaritoneCompat`
+
+Provides a soft bridge to the [Baritone](https://github.com/cabaletta/baritone) pathfinding
+mod. All calls are via reflection; the class is safe to reference even when Baritone is absent.
+
+### Methods
+
+```java
+boolean BaritoneCompat.isLoaded()
+boolean BaritoneCompat.followCustomEntity(Identifier customEntityId)
+boolean BaritoneCompat.pickupCustomItems(Identifier customItemId)
+boolean BaritoneCompat.farm(int range)
+```
+
+### `followCustomEntity(Identifier)`
+
+Builds a `Predicate<Entity>` from the registry (for `customEntityId`) and passes it to
+`IFollowProcess.follow(Predicate)`. Baritone will then navigate toward all matching entities.
+
+### `pickupCustomItems(Identifier)`
+
+Builds a `Predicate<ItemStack>` from the registry (for `customItemId`) and passes it to
+`IFollowProcess.pickup(Predicate)`. Baritone will navigate to and pick up matching item drops.
+
+### `farm(int range)`
+
+Calls `IFarmProcess.farm(int, BlockPos)` with `null` position (= player's current position).
+Baritone's farming is block-state based; resource-pack skins are irrelevant — vanilla crops
+are harvested correctly.
+
+### Client commands
+
+Registered via Fabric's `ClientCommandRegistrationCallback`:
+
+| Command | Effect |
+|---------|--------|
+| `/customcompat follow <id>` | `followCustomEntity(id)` |
+| `/customcompat pickup <id>` | `pickupCustomItems(id)` |
+| `/customcompat farm [range]` | `farm(range)` (default 0 = unlimited) |
+
+### Example
+
+```java
+// In onInitializeClient() or any client-side code after Baritone initialises:
+if (BaritoneCompat.isLoaded()) {
+    // Follow custom boss zombies with Baritone
+    BaritoneCompat.followCustomEntity(Identifier.of("mymod", "boss_zombie"));
+    
+    // Have Baritone pick up custom magic swords that dropped on the ground
+    BaritoneCompat.pickupCustomItems(Identifier.of("mymod", "magic_sword"));
+    
+    // Have Baritone farm within 128 blocks
+    BaritoneCompat.farm(128);
+}
+```
+
+### Runtime compatibility note
+
+Our mod compiles against **Yarn** mappings; Baritone compiles against **Mojang** mappings.
+At runtime both are remapped to **Intermediary** by the Fabric toolchain, so the entity and
+item-stack classes are identical at the bytecode level. The `Predicate` lambdas created by
+`BaritoneCompat` receive Intermediary-named MC classes, which our Yarn-compiled predicates
+handle correctly.
+

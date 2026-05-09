@@ -20,6 +20,7 @@ loom {
     mods {
         customcompat {
             sourceSet sourceSets.main
+            sourceSet sourceSets.client
         }
     }
 }
