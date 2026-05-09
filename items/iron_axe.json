@@ -1,0 +1,1 @@
+{"model":{"type":"range_dispatch","property":"custom_model_data","entries":[{"threshold":4024001.0,"model":{"type":"model","model":"e94a3c2f-10aa-4d92-9ed0-c73f74fef20e:cosmetics/archangel_assortment_weapon/axe","tints":[]}}],"fallback":{"type":"model","model":"item/iron_axe","tints":[]}}}
