@@ -1,6 +1,7 @@
 package com.badger124.customcompat.compat.baritone;
 
 import com.badger124.customcompat.CustomCompatMod;
+import com.badger124.customcompat.api.CustomCompatApi;
 import com.badger124.customcompat.impl.CustomCompatRegistryImpl;
 import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
@@ -73,20 +74,34 @@ public final class BaritoneCompat {
     /**
      * Tells Baritone to follow all entities matching the given custom entity identifier.
      *
-     * <p>The predicate is resolved from the registered {@link CustomCompatRegistryImpl} entries.
-     * If no entry for {@code customEntityId} is registered the predicate will never match.</p>
+     * <p>Checks registered {@link CustomCompatRegistryImpl} entries first. If no entry is
+     * registered for {@code customEntityId}, falls back to scoreboard-tag detection:
+     * any entity that has the tag {@code "customcompat:<namespace>:<path>"} will match.
+     * This means you can use the command without a separate mod calling
+     * {@link com.badger124.customcompat.api.CustomCompatApi#registerEntity} — just tag the
+     * entity on the server with
+     * {@code /tag <selector> add customcompat:<namespace>:<path>}.</p>
      *
-     * @param customEntityId Custom entity identifier (must be registered via
-     *                       {@link com.badger124.customcompat.api.CustomCompatApi#registerEntity}).
+     * @param customEntityId Custom entity identifier (e.g. {@code mymod:boss_zombie}).
      * @return {@code true} if the follow command was issued successfully.
      */
     public static boolean followCustomEntity(Identifier customEntityId) {
         if (!LOADED) return false;
         try {
-            Predicate<Entity> predicate = entity ->
-                    CustomCompatRegistryImpl.resolveEntity(entity)
-                                            .filter(customEntityId::equals)
-                                            .isPresent();
+            // Check registered entries first; fall back to scoreboard-tag detection so
+            // the command works without a separate mod calling registerEntity().
+            // Tag format the server should add: /tag @e add customcompat:<namespace>:<path>
+            String expectedTag = CustomCompatApi.ENTITY_TAG_PREFIX + customEntityId;
+            Predicate<Entity> predicate = entity -> {
+                // 1. Registered predicate match
+                if (CustomCompatRegistryImpl.resolveEntity(entity)
+                        .filter(customEntityId::equals)
+                        .isPresent()) {
+                    return true;
+                }
+                // 2. Scoreboard-tag fallback (no pre-registration needed)
+                return entity.getCommandTags().contains(expectedTag);
+            };
             return invokeFollow(predicate);
         } catch (Exception e) {
             CustomCompatMod.LOGGER.error("[CustomCompat] Baritone follow failed for {}", customEntityId, e);
@@ -97,19 +112,33 @@ public final class BaritoneCompat {
     /**
      * Tells Baritone to pick up all dropped item entities matching the given custom item identifier.
      *
-     * <p>The predicate is resolved from the registered {@link CustomCompatRegistryImpl} entries.</p>
+     * <p>Checks registered {@link CustomCompatRegistryImpl} entries first. If no entry is
+     * registered for {@code customItemId}, falls back to reading the
+     * {@code minecraft:custom_data} NBT component written by the server
+     * ({@code {customcompat:{id:"namespace:path"}}}).</p>
      *
-     * @param customItemId Custom item identifier (must be registered via
-     *                     {@link com.badger124.customcompat.api.CustomCompatApi#registerItem}).
+     * @param customItemId Custom item identifier (registered via
+     *                     {@link com.badger124.customcompat.api.CustomCompatApi#registerItem},
+     *                     or identified via custom_data NBT without pre-registration).
      * @return {@code true} if the pickup command was issued successfully.
      */
     public static boolean pickupCustomItems(Identifier customItemId) {
         if (!LOADED) return false;
         try {
-            Predicate<ItemStack> predicate = stack ->
-                    CustomCompatRegistryImpl.resolveItem(stack)
-                                            .filter(customItemId::equals)
-                                            .isPresent();
+            // Check registered entries first; fall back to custom_data NBT detection so
+            // the command works without a separate mod calling registerItem().
+            Predicate<ItemStack> predicate = stack -> {
+                // 1. Registered predicate match
+                if (CustomCompatRegistryImpl.resolveItem(stack)
+                        .filter(customItemId::equals)
+                        .isPresent()) {
+                    return true;
+                }
+                // 2. custom_data NBT fallback (no pre-registration needed)
+                return CustomCompatApi.readCustomDataId(stack)
+                        .filter(customItemId::equals)
+                        .isPresent();
+            };
             return invokePickup(predicate);
         } catch (Exception e) {
             CustomCompatMod.LOGGER.error("[CustomCompat] Baritone pickup failed for {}", customItemId, e);
