@@ -47,15 +47,15 @@ public class CustomCompatClient implements ClientModInitializer {
                 .toList();
 
         if (interactions.isEmpty()) {
-            client.player.sendMessage(Text.literal("[CustomCompat] 10블록 내 interaction 엔티티가 없습니다."), false);
+            client.player.sendMessage(Text.translatable("message.customcompat.scan.none"), false);
             return;
         }
 
-        client.player.sendMessage(Text.literal("[CustomCompat] 감지된 interaction 엔티티 수: " + interactions.size()), false);
+        client.player.sendMessage(Text.translatable("message.customcompat.scan.count", interactions.size()), false);
 
         for (Entity entity : interactions) {
             String line = String.format(
-                    "[CustomCompat] UUID=%s | getName()=%s | getCustomName()=%s | getDisplayName()=%s | getScoreboardTags()=%s | width=%.2f | height=%.2f | blockPos=%s",
+                    "UUID=%s | getName()=%s | getCustomName()=%s | getDisplayName()=%s | getScoreboardTags()=%s | width=%.2f | height=%.2f | blockPos=%s",
                     entity.getUuid(),
                     entity.getName().getString(),
                     entity.getCustomName() == null ? "null" : entity.getCustomName().getString(),
