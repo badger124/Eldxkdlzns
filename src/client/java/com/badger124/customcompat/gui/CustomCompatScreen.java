@@ -602,7 +602,7 @@ public final class CustomCompatScreen extends Screen {
             int topY = 40;
             // Labels for fields
             ctx.drawTextWithShadow(textRenderer, Text.literal("범위:"), rx, topY + 29, COL_GREY);
-            ctx.drawTextWithShadow(textRenderer, Text.literal("젖은 음 범위:"), rx, topY + 53, COL_GREY);
+            ctx.drawTextWithShadow(textRenderer, Text.literal("젖은 경작지 음높이:"), rx, topY + 53, COL_GREY);
             ctx.drawTextWithShadow(textRenderer, Text.literal("–"), rx + 44, topY + 53, COL_GREY);
 
             // Crop mappings header
