@@ -83,7 +83,7 @@ public final class CustomCompatClientMod implements ClientModInitializer {
         });
 
         registerCommands();
-        CustomCompatMod.LOGGER.info("[CustomCompat] Client initialized.");
+        CustomCompatMod.LOGGER.info("[커스텀컴팻] 클라이언트 초기화됨.");
     }
 
     private static void registerCommands() {
@@ -107,20 +107,20 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                                     if (id == null) {
                                                         ctx.getSource().sendError(
                                                                 Text.literal(
-                                                                        "[CustomCompat] Invalid identifier: " + raw));
+                                                                        "[커스텀컴팻] 잘못된 ID: " + raw));
                                                         return 0;
                                                     }
                                                     if (!BaritoneCompat.isLoaded()) {
                                                         ctx.getSource().sendError(
                                                                 Text.literal(
-                                                                        "[CustomCompat] Baritone is not installed."));
+                                                                        "[커스텀컴팻] Baritone이 설치되어 있지 않습니다."));
                                                         return 0;
                                                     }
                                                     boolean started = BaritoneCompat.followCustomEntity(id);
                                                     ctx.getSource().sendFeedback(
                                                             Text.literal(started
-                                                                    ? "[CustomCompat] Following custom entity: " + id
-                                                                    : "[CustomCompat] Failed to start follow for: " + id));
+                                                                    ? "[커스텀컴팻] 커스텀 엔티티 추적 중: " + id
+                                                                    : "[커스텀컴팻] 추적 시작 실패: " + id));
                                                     return started ? 1 : 0;
                                                 })))
 
@@ -133,20 +133,20 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                                     if (id == null) {
                                                         ctx.getSource().sendError(
                                                                 Text.literal(
-                                                                        "[CustomCompat] Invalid identifier: " + raw));
+                                                                        "[커스텀컴팻] 잘못된 ID: " + raw));
                                                         return 0;
                                                     }
                                                     if (!BaritoneCompat.isLoaded()) {
                                                         ctx.getSource().sendError(
                                                                 Text.literal(
-                                                                        "[CustomCompat] Baritone is not installed."));
+                                                                        "[커스텀컴팻] Baritone이 설치되어 있지 않습니다."));
                                                         return 0;
                                                     }
                                                     boolean started = BaritoneCompat.pickupCustomItems(id);
                                                     ctx.getSource().sendFeedback(
                                                             Text.literal(started
-                                                                    ? "[CustomCompat] Picking up custom items: " + id
-                                                                    : "[CustomCompat] Failed to start pickup for: " + id));
+                                                                    ? "[커스텀컴팻] 커스텀 아이템 수집 중: " + id
+                                                                    : "[커스텀컴팻] 수집 시작 실패: " + id));
                                                     return started ? 1 : 0;
                                                 })))
 
@@ -156,14 +156,14 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                             if (!BaritoneCompat.isLoaded()) {
                                                 ctx.getSource().sendError(
                                                         Text.literal(
-                                                                "[CustomCompat] Baritone is not installed."));
+                                                                "[커스텀컴팻] Baritone이 설치되어 있지 않습니다."));
                                                 return 0;
                                             }
                                             boolean started = BaritoneCompat.farm(0);
                                             ctx.getSource().sendFeedback(
                                                     Text.literal(started
-                                                            ? "[CustomCompat] Baritone farming started (unlimited range)."
-                                                            : "[CustomCompat] Failed to start Baritone farming."));
+                                                            ? "[커스텀컴팻] Baritone 농사 시작 (무제한 범위)."
+                                                            : "[커스텀컴팻] Baritone 농사 시작 실패."));
                                             return started ? 1 : 0;
                                         })
                                         .then(ClientCommandManager.argument("range", IntegerArgumentType.integer(0))
@@ -171,15 +171,15 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                                     if (!BaritoneCompat.isLoaded()) {
                                                         ctx.getSource().sendError(
                                                                 Text.literal(
-                                                                        "[CustomCompat] Baritone is not installed."));
+                                                                        "[커스텀컴팻] Baritone이 설치되어 있지 않습니다."));
                                                         return 0;
                                                     }
                                                     int range = IntegerArgumentType.getInteger(ctx, "range");
                                                     boolean started = BaritoneCompat.farm(range);
                                                     ctx.getSource().sendFeedback(
                                                             Text.literal(started
-                                                                    ? "[CustomCompat] Baritone farming started (range=" + range + ")."
-                                                                    : "[CustomCompat] Failed to start Baritone farming."));
+                                                                    ? "[커스텀컴팻] Baritone 농사 시작 (범위=" + range + ")."
+                                                                    : "[커스텀컴팻] Baritone 농사 시작 실패."));
                                                     return started ? 1 : 0;
                                                 })))
 
@@ -189,14 +189,14 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                             if (!BaritoneCompat.isLoaded()) {
                                                 ctx.getSource().sendError(
                                                         Text.literal(
-                                                                "[CustomCompat] Baritone is not installed."));
+                                                                "[커스텀컴팻] Baritone이 설치되어 있지 않습니다."));
                                                 return 0;
                                             }
                                             boolean stopped = BaritoneCompat.stop();
                                             ctx.getSource().sendFeedback(
                                                     Text.literal(stopped
-                                                            ? "[CustomCompat] Baritone stopped."
-                                                            : "[CustomCompat] Failed to stop Baritone."));
+                                                            ? "[커스텀컴팻] Baritone 중단됨."
+                                                            : "[커스텀컴팻] Baritone 중단 실패."));
                                             return stopped ? 1 : 0;
                                         }))
 
@@ -206,11 +206,11 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                             DataCollector dc = DataCollector.getInstance();
                                             dc.scan();
                                             ctx.getSource().sendFeedback(Text.literal(
-                                                    "[CustomCompat] Scan: "
-                                                            + dc.getLastItems().size() + " items, "
-                                                            + dc.getLastEntities().size() + " entities — "
+                                                    "[커스텀컴팻] 스캔: "
+                                                            + dc.getLastItems().size() + " 아이템, "
+                                                            + dc.getLastEntities().size() + " 엔티티 — "
                                                             + dc.getLastScanServer()
-                                                            + " (saved to config/customcompat_inspector.json)"));
+                                                            + " (config/customcompat_inspector.json 저장됨)"));
                                             return 1;
                                         }))
                 )

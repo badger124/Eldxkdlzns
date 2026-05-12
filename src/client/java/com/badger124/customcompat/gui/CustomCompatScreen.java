@@ -87,7 +87,7 @@ public final class CustomCompatScreen extends Screen {
     private static final int ITEM_ROW_H = 18;
 
     public CustomCompatScreen() {
-        super(Text.literal("CustomCompat Manager"));
+        super(Text.literal("커스텀컴팻 관리자"));
     }
 
     // =========================================================================
@@ -106,16 +106,16 @@ public final class CustomCompatScreen extends Screen {
 
         // ── Common: tab buttons + close ──────────────────────────────────────
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Items"), b -> switchTab(TAB_ITEMS))
+                ButtonWidget.builder(Text.literal("아이템"), b -> switchTab(TAB_ITEMS))
                         .dimensions(cx - 160, 13, 72, 20).build());
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Macros"), b -> switchTab(TAB_MACROS))
+                ButtonWidget.builder(Text.literal("매크로"), b -> switchTab(TAB_MACROS))
                         .dimensions(cx - 84, 13, 72, 20).build());
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Farm"), b -> switchTab(TAB_FARM))
+                ButtonWidget.builder(Text.literal("농사"), b -> switchTab(TAB_FARM))
                         .dimensions(cx - 8, 13, 72, 20).build());
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Inspector"), b -> switchTab(TAB_INSPECTOR))
+                ButtonWidget.builder(Text.literal("분석기"), b -> switchTab(TAB_INSPECTOR))
                         .dimensions(cx + 68, 13, 82, 20).build());
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("✕"), b -> close())
@@ -144,21 +144,21 @@ public final class CustomCompatScreen extends Screen {
 
         idField = new TextFieldWidget(textRenderer, cx - 150, y, 240, 20, Text.empty());
         idField.setMaxLength(128);
-        idField.setPlaceholderText(Text.literal("nexo:crop_tomato_seed  or  mymod:item"));
+        idField.setPlaceholderText(Text.literal("nexo:crop_tomato_seed  또는  mymod:item"));
         addDrawableChild(idField);
 
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Pickup"), b -> doPickup())
+                ButtonWidget.builder(Text.literal("수집"), b -> doPickup())
                         .dimensions(cx + 96, y, 58, 20).build());
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Follow"), b -> doFollow())
+                ButtonWidget.builder(Text.literal("추적"), b -> doFollow())
                         .dimensions(cx + 96, y + 22, 58, 20).build());
 
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Farm"), b -> BaritoneCompat.farm(0))
+                ButtonWidget.builder(Text.literal("농사"), b -> BaritoneCompat.farm(0))
                         .dimensions(cx - 150, y + 22, 55, 20).build());
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Stop"), b -> BaritoneCompat.stop())
+                ButtonWidget.builder(Text.literal("중단"), b -> BaritoneCompat.stop())
                         .dimensions(cx - 91, y + 22, 55, 20).build());
 
         int listTop = ITEM_LIST_TOP_OFFSET;
@@ -217,15 +217,15 @@ public final class CustomCompatScreen extends Screen {
         int topY = 40;
 
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("+ New"), b -> {
-                    MacroEntry e = new MacroEntry("Macro " + (mgr.getMacros().size() + 1));
+                ButtonWidget.builder(Text.literal("+ 새로 만들기"), b -> {
+                    MacroEntry e = new MacroEntry("매크로 " + (mgr.getMacros().size() + 1));
                     mgr.addMacro(e);
                     selectedMacro = e;
                     rebuildWidgets();
                 }).dimensions(10, topY, 70, 20).build());
 
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Delete"), b -> {
+                ButtonWidget.builder(Text.literal("삭제"), b -> {
                     if (selectedMacro != null) {
                         mgr.removeMacro(selectedMacro);
                         List<MacroEntry> list = mgr.getMacros();
@@ -236,7 +236,7 @@ public final class CustomCompatScreen extends Screen {
 
         boolean running = mgr.isRunning();
         addDrawableChild(
-                ButtonWidget.builder(Text.literal(running ? "■ Stop" : "▶ Run"), b -> {
+                ButtonWidget.builder(Text.literal(running ? "■ 중단" : "▶ 실행"), b -> {
                     if (mgr.isRunning()) {
                         mgr.stopMacro();
                     } else if (selectedMacro != null) {
@@ -254,7 +254,7 @@ public final class CustomCompatScreen extends Screen {
             addDrawableChild(macroNameField);
 
             addDrawableChild(
-                    ButtonWidget.builder(Text.literal("Save"), b -> {
+                    ButtonWidget.builder(Text.literal("저장"), b -> {
                         if (macroNameField != null) {
                             selectedMacro.setName(macroNameField.getText());
                             mgr.updateMacro(selectedMacro);
@@ -265,11 +265,11 @@ public final class CustomCompatScreen extends Screen {
             int ay = height - 50;
             stepField = new TextFieldWidget(textRenderer, rx, ay, 175, 20, Text.empty());
             stepField.setMaxLength(128);
-            stepField.setPlaceholderText(Text.literal("pickup nexo:<id>   farmcustom <name>   wait 5"));
+            stepField.setPlaceholderText(Text.literal("pickup nexo:<id>   farmcustom <이름>   wait 5"));
             addDrawableChild(stepField);
 
             addDrawableChild(
-                    ButtonWidget.builder(Text.literal("Add"), b -> {
+                    ButtonWidget.builder(Text.literal("추가"), b -> {
                         if (stepField != null && !stepField.getText().isBlank()) {
                             selectedMacro.getSteps().add(stepField.getText().trim());
                             mgr.updateMacro(selectedMacro);
@@ -278,7 +278,7 @@ public final class CustomCompatScreen extends Screen {
                     }).dimensions(rx + 179, ay, 40, 20).build());
 
             addDrawableChild(
-                    ButtonWidget.builder(Text.literal("Del Last"), b -> {
+                    ButtonWidget.builder(Text.literal("마지막 삭제"), b -> {
                         List<String> steps = selectedMacro.getSteps();
                         if (!steps.isEmpty()) {
                             steps.remove(steps.size() - 1);
@@ -299,15 +299,15 @@ public final class CustomCompatScreen extends Screen {
 
         // Left-panel controls
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("+ New"), b -> {
-                    FarmProfile p = new FarmProfile("Farm " + (mgr.getProfiles().size() + 1));
+                ButtonWidget.builder(Text.literal("+ 새로 만들기"), b -> {
+                    FarmProfile p = new FarmProfile("농사 " + (mgr.getProfiles().size() + 1));
                     mgr.addProfile(p);
                     selectedProfile = p;
                     rebuildWidgets();
                 }).dimensions(10, topY, 70, 20).build());
 
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Delete"), b -> {
+                ButtonWidget.builder(Text.literal("삭제"), b -> {
                     if (selectedProfile != null) {
                         if (handler.isActive() && handler.getActiveProfile() == selectedProfile) {
                             handler.stop();
@@ -321,7 +321,7 @@ public final class CustomCompatScreen extends Screen {
 
         boolean farming = handler.isActive();
         addDrawableChild(
-                ButtonWidget.builder(Text.literal(farming ? "■ Stop" : "▶ Start"), b -> {
+                ButtonWidget.builder(Text.literal(farming ? "■ 중단" : "▶ 시작"), b -> {
                     if (handler.isActive()) {
                         handler.stop();
                     } else if (selectedProfile != null) {
@@ -341,7 +341,7 @@ public final class CustomCompatScreen extends Screen {
             addDrawableChild(farmNameField);
 
             addDrawableChild(
-                    ButtonWidget.builder(Text.literal("Save"), b -> saveFarmProfile()).dimensions(rx + 124, topY, 44, 20).build());
+                    ButtonWidget.builder(Text.literal("저장"), b -> saveFarmProfile()).dimensions(rx + 124, topY, 44, 20).build());
 
             // Range field
             farmRangeField = new TextFieldWidget(textRenderer, rx + 10, topY + 26, 40, 18, Text.empty());
@@ -363,7 +363,7 @@ public final class CustomCompatScreen extends Screen {
             // Skip dry toggle
             addDrawableChild(
                     ButtonWidget.builder(
-                            Text.literal("Skip dry: " + (selectedProfile.isSkipDry() ? "ON" : "OFF")),
+                            Text.literal("건조 건너뜀: " + (selectedProfile.isSkipDry() ? "ON" : "OFF")),
                             b -> {
                                 selectedProfile.setSkipDry(!selectedProfile.isSkipDry());
                                 mgr.update();
@@ -374,11 +374,11 @@ public final class CustomCompatScreen extends Screen {
             int ay = height - 50;
             cropLineField = new TextFieldWidget(textRenderer, rx, ay, 180, 20, Text.empty());
             cropLineField.setMaxLength(200);
-            cropLineField.setPlaceholderText(Text.literal("<blockId> <age> <nexo:seedId>"));
+            cropLineField.setPlaceholderText(Text.literal("<블록ID> <성숙나이> <nexo:씨앗ID>"));
             addDrawableChild(cropLineField);
 
             addDrawableChild(
-                    ButtonWidget.builder(Text.literal("Add"), b -> {
+                    ButtonWidget.builder(Text.literal("추가"), b -> {
                         if (cropLineField != null && !cropLineField.getText().isBlank()) {
                             selectedProfile.getCropLines().add(cropLineField.getText().trim());
                             mgr.update();
@@ -387,7 +387,7 @@ public final class CustomCompatScreen extends Screen {
                     }).dimensions(rx + 184, ay, 38, 20).build());
 
             addDrawableChild(
-                    ButtonWidget.builder(Text.literal("Del"), b -> {
+                    ButtonWidget.builder(Text.literal("삭제"), b -> {
                         List<String> lines = selectedProfile.getCropLines();
                         if (!lines.isEmpty()) {
                             lines.remove(lines.size() - 1);
@@ -452,12 +452,12 @@ public final class CustomCompatScreen extends Screen {
 
         ctx.drawHorizontalLine(10, width - 28, lt - 6, COL_DIVIDER);
         ctx.drawTextWithShadow(textRenderer,
-                Text.literal("Recent IDs  (right-click to remove):"),
+                Text.literal("최근 ID  (우클릭으로 삭제):"),
                 12, lt - 14, COL_GREY);
 
         if (recentIds.isEmpty()) {
             ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("Enter a Nexo/custom item ID above and press Pickup or Follow."),
+                    Text.literal("위에 Nexo/커스텀 아이템 ID를 입력하고 수집 또는 추적을 누르세요."),
                     width / 2, lt + 16, COL_DARK);
             return;
         }
@@ -488,7 +488,7 @@ public final class CustomCompatScreen extends Screen {
 
         int lx = 10, ly = 66, lw = width / 2 - 15, lh = height - ly - 10;
         ctx.fill(lx, ly, lx + lw, ly + lh, COL_BG);
-        ctx.drawTextWithShadow(textRenderer, Text.literal("Macros:"), lx + 4, ly + 3, COL_GREY);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("매크로:"), lx + 4, ly + 3, COL_GREY);
 
         int rowH = 20, innerY = ly + 16;
         for (int i = 0; i < macros.size(); i++) {
@@ -505,7 +505,7 @@ public final class CustomCompatScreen extends Screen {
 
         if (macros.isEmpty()) {
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("Click '+ New' to create a macro."),
+                    Text.literal("'+ 새로 만들기'를 눌러 매크로를 생성하세요."),
                     lx + 6, innerY + 5, COL_DARK);
         }
 
@@ -514,12 +514,12 @@ public final class CustomCompatScreen extends Screen {
 
         if (selectedMacro == null) {
             ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("Select a macro on the left."),
+                    Text.literal("왼쪽에서 매크로를 선택하세요."),
                     rx + rw / 2, ry + lh / 2, COL_DARK);
         } else {
-            ctx.drawTextWithShadow(textRenderer, Text.literal("Steps:"), rx + 4, ry + 3, COL_GREY);
+            ctx.drawTextWithShadow(textRenderer, Text.literal("스텝:"), rx + 4, ry + 3, COL_GREY);
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("pickup <id>  follow <id>  farm [n]  farmcustom <name>  wait <s>  stop"),
+                    Text.literal("pickup <id>  follow <id>  farm [n]  farmcustom <이름>  wait <초>  stop"),
                     rx + 4, ry + 13, COL_DARK);
 
             int sy = ry + 26;
@@ -541,18 +541,18 @@ public final class CustomCompatScreen extends Screen {
 
             if (steps.isEmpty()) {
                 ctx.drawTextWithShadow(textRenderer,
-                        Text.literal("No steps yet. Add one below."),
+                        Text.literal("스텝이 없습니다. 아래에 추가하세요."),
                         rx + 4, ry + 26, COL_DARK);
             }
 
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("Add step:"), rx + 4, height - 65, COL_GREY);
+                    Text.literal("스텝 추가:"), rx + 4, height - 65, COL_GREY);
         }
 
         if (mgr.isRunning() && mgr.getActiveMacro() != null) {
             MacroEntry act = mgr.getActiveMacro();
             String status = "▶ " + act.getName()
-                    + "  step " + mgr.getStepIndex() + " / " + act.getSteps().size();
+                    + "  스텝 " + mgr.getStepIndex() + " / " + act.getSteps().size();
             ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(status),
                     width / 2, height - 8, COL_GREEN);
         }
@@ -567,7 +567,7 @@ public final class CustomCompatScreen extends Screen {
 
         int lx = 10, ly = 66, lw = width / 2 - 15, lh = height - ly - 10;
         ctx.fill(lx, ly, lx + lw, ly + lh, COL_BG);
-        ctx.drawTextWithShadow(textRenderer, Text.literal("Farm Profiles:"), lx + 4, ly + 3, COL_GREY);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("농사 프로파일:"), lx + 4, ly + 3, COL_GREY);
 
         int rowH = 20, innerY = ly + 16;
         for (int i = 0; i < profiles.size(); i++) {
@@ -586,7 +586,7 @@ public final class CustomCompatScreen extends Screen {
 
         if (profiles.isEmpty()) {
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("Click '+ New' to create a farm profile."),
+                    Text.literal("'+ 새로 만들기'를 눌러 농사 프로파일을 생성하세요."),
                     lx + 6, innerY + 5, COL_DARK);
         }
 
@@ -596,22 +596,22 @@ public final class CustomCompatScreen extends Screen {
 
         if (selectedProfile == null) {
             ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("Select a profile on the left."),
+                    Text.literal("왼쪽에서 프로파일을 선택하세요."),
                     rx + rw / 2, ry + lh / 2, COL_DARK);
         } else {
             int topY = 40;
             // Labels for fields
-            ctx.drawTextWithShadow(textRenderer, Text.literal("Range:"), rx, topY + 29, COL_GREY);
-            ctx.drawTextWithShadow(textRenderer, Text.literal("Wet pitch:"), rx, topY + 53, COL_GREY);
+            ctx.drawTextWithShadow(textRenderer, Text.literal("범위:"), rx, topY + 29, COL_GREY);
+            ctx.drawTextWithShadow(textRenderer, Text.literal("젖은 음 범위:"), rx, topY + 53, COL_GREY);
             ctx.drawTextWithShadow(textRenderer, Text.literal("–"), rx + 44, topY + 53, COL_GREY);
 
             // Crop mappings header
             ctx.drawHorizontalLine(rx, rx + rw - 2, ry + 80, COL_DIVIDER);
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("Crops  (blockId  matureAge  nexo:seedId):"),
+                    Text.literal("작물  (블록ID  성숙나이  nexo:씨앗ID):"),
                     rx + 2, ry + 83, COL_GREY);
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("Use -1 as matureAge to harvest any age. # = comment."),
+                    Text.literal("성숙나이 -1은 모든 나이에서 수확. # = 주석."),
                     rx + 2, ry + 93, COL_DARK);
 
             // Crop lines list
@@ -630,20 +630,20 @@ public final class CustomCompatScreen extends Screen {
             }
             if (cropLines.isEmpty()) {
                 ctx.drawTextWithShadow(textRenderer,
-                        Text.literal("No crop mappings yet. Add one below."),
+                        Text.literal("작물 매핑이 없습니다. 아래에 추가하세요."),
                         rx + 2, ry + 104, COL_DARK);
             }
 
             // Add-line label
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("Add crop mapping:"), rx + 2, height - 65, COL_GREY);
+                    Text.literal("작물 매핑 추가:"), rx + 2, height - 65, COL_GREY);
         }
 
         // Status bar
         if (handler.isActive() && handler.getActiveProfile() != null) {
-            String status = "▶ Farming: " + handler.getActiveProfile().getName()
-                    + "  (note pitch " + handler.getActiveProfile().getWetPitchMin()
-                    + "-" + handler.getActiveProfile().getWetPitchMax() + " = wet)";
+            String status = "▶ 농사 중: " + handler.getActiveProfile().getName()
+                    + "  (음 범위 " + handler.getActiveProfile().getWetPitchMin()
+                    + "-" + handler.getActiveProfile().getWetPitchMax() + " = 젖은 경작지)";
             ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(status),
                     width / 2, height - 8, COL_GREEN);
         }
@@ -659,7 +659,7 @@ public final class CustomCompatScreen extends Screen {
 
         // Scan button
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("⟳ Scan Now"), b -> {
+                ButtonWidget.builder(Text.literal("⟳ 지금 스캔"), b -> {
                     dc.scan();
                     inspectorSelectedServer = dc.getLastScanServer();
                     inspectorScrollOffset = 0;
@@ -669,7 +669,7 @@ public final class CustomCompatScreen extends Screen {
         // Toggle items/entities view
         addDrawableChild(
                 ButtonWidget.builder(
-                        Text.literal(inspectorShowEntities ? "Show: Entities" : "Show: Items"),
+                        Text.literal(inspectorShowEntities ? "표시: 엔티티" : "표시: 아이템"),
                         b -> {
                             inspectorShowEntities = !inspectorShowEntities;
                             inspectorScrollOffset = 0;
@@ -678,7 +678,7 @@ public final class CustomCompatScreen extends Screen {
 
         // Clear button
         addDrawableChild(
-                ButtonWidget.builder(Text.literal("Clear All"), b -> {
+                ButtonWidget.builder(Text.literal("전체 삭제"), b -> {
                     dc.clearAll();
                     inspectorScrollOffset = 0;
                     rebuildWidgets();
@@ -735,11 +735,11 @@ public final class CustomCompatScreen extends Screen {
         DataCollector dc = DataCollector.getInstance();
         int lx = 10, ly = 66, lw = 134, lh = height - ly - 10;
         ctx.fill(lx, ly, lx + lw, ly + lh, COL_BG);
-        ctx.drawTextWithShadow(textRenderer, Text.literal("Servers:"), lx + 4, ly + 3, COL_GREY);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("서버:"), lx + 4, ly + 3, COL_GREY);
 
         Set<String> servers = dc.getKnownServers();
         if (servers.isEmpty()) {
-            ctx.drawTextWithShadow(textRenderer, Text.literal("No data yet — click Scan Now."),
+            ctx.drawTextWithShadow(textRenderer, Text.literal("데이터 없음 — 지금 스캔을 누르세요."),
                     lx + 4, ly + 16, COL_DARK);
         } else {
             int sy = ly + 16;
@@ -760,10 +760,10 @@ public final class CustomCompatScreen extends Screen {
 
         if (inspectorSelectedServer.isEmpty()) {
             ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("Click a server on the left, or scan first."),
+                    Text.literal("왼쪽에서 서버를 선택하거나 먼저 스캔하세요."),
                     rx + rw / 2, ry + (height - ry - 10) / 2, COL_DARK);
         } else {
-            String kind = inspectorShowEntities ? "Entities" : "Items";
+            String kind = inspectorShowEntities ? "엔티티" : "아이템";
             ctx.drawTextWithShadow(textRenderer,
                     Text.literal(kind + "  (" + inspectorSelectedServer + "):"),
                     rx + 4, ry + 3, COL_GREY);
@@ -771,7 +771,7 @@ public final class CustomCompatScreen extends Screen {
             List<String> lines = getInspectorLines(dc);
             if (lines.isEmpty()) {
                 ctx.drawTextWithShadow(textRenderer,
-                        Text.literal("No " + kind.toLowerCase() + " data for this server."),
+                        Text.literal("이 서버에 대한 " + kind + " 데이터가 없습니다."),
                         rx + 4, ry + 16, COL_DARK);
             } else {
                 int visible = inspectorVisibleRows();
@@ -797,8 +797,8 @@ public final class CustomCompatScreen extends Screen {
             int itemCount   = dc.getLastItems().size();
             int entityCount = dc.getLastEntities().size();
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("Last scan: " + itemCount + " items, " + entityCount
-                            + " entities  →  config/customcompat_inspector.json"),
+                    Text.literal("마지막 스캔: " + itemCount + " 아이템, " + entityCount
+                            + " 엔티티  →  config/customcompat_inspector.json"),
                     10, height - 8, COL_DARK);
         }
     }
