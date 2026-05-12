@@ -1,0 +1,6 @@
+{
+  "category.customcompat": "CustomCompat",
+  "key.customcompat.scan_interactions": "Scan interaction entities (10 blocks)",
+  "message.customcompat.scan.none": "[CustomCompat] No interaction entities found within 10 blocks.",
+  "message.customcompat.scan.count": "[CustomCompat] Detected interaction entities: %s"
+}

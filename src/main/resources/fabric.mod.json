@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "customcompat",
+  "version": "${version}",
+  "name": "CustomCompat",
+  "description": "Client utility mod for scanning interaction entities.",
+  "authors": [
+    "badger124"
+  ],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.badger124.customcompat.CustomCompatClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.9",
+    "minecraft": "~1.21.4",
+    "fabric-api": "*"
+  }
+}
