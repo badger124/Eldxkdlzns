@@ -4,6 +4,7 @@ import com.badger124.customcompat.compat.baritone.BaritoneCompat;
 import com.badger124.customcompat.gui.farm.CustomFarmingHandler;
 import com.badger124.customcompat.gui.farm.FarmProfile;
 import com.badger124.customcompat.gui.farm.FarmProfileManager;
+import com.badger124.customcompat.inspector.DataCollector;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -12,7 +13,9 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Main GUI for the Custom Content Compat mod.
@@ -36,9 +39,10 @@ import java.util.List;
 public final class CustomCompatScreen extends Screen {
 
     // ── Tab constants ─────────────────────────────────────────────────────────
-    private static final int TAB_ITEMS  = 0;
-    private static final int TAB_MACROS = 1;
-    private static final int TAB_FARM   = 2;
+    private static final int TAB_ITEMS     = 0;
+    private static final int TAB_MACROS    = 1;
+    private static final int TAB_FARM      = 2;
+    private static final int TAB_INSPECTOR = 3;
 
     // ── State ─────────────────────────────────────────────────────────────────
     private int activeTab = TAB_ITEMS;
@@ -60,6 +64,11 @@ public final class CustomCompatScreen extends Screen {
     private TextFieldWidget farmWetMinField;
     private TextFieldWidget farmWetMaxField;
     private TextFieldWidget cropLineField;
+
+    // Inspector tab
+    private int     inspectorScrollOffset = 0;
+    private boolean inspectorShowEntities = false;
+    private String  inspectorSelectedServer = "";
 
     // ── Colours ───────────────────────────────────────────────────────────────
     private static final int COL_BG        = 0xC0000000;
@@ -98,21 +107,25 @@ public final class CustomCompatScreen extends Screen {
         // ── Common: tab buttons + close ──────────────────────────────────────
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Items"), b -> switchTab(TAB_ITEMS))
-                        .dimensions(cx - 160, 13, 95, 20).build());
+                        .dimensions(cx - 160, 13, 72, 20).build());
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Macros"), b -> switchTab(TAB_MACROS))
-                        .dimensions(cx - 60, 13, 95, 20).build());
+                        .dimensions(cx - 84, 13, 72, 20).build());
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Farm"), b -> switchTab(TAB_FARM))
-                        .dimensions(cx + 40, 13, 95, 20).build());
+                        .dimensions(cx + -8, 13, 72, 20).build());
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal("Inspector"), b -> switchTab(TAB_INSPECTOR))
+                        .dimensions(cx + 68, 13, 82, 20).build());
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("✕"), b -> close())
                         .dimensions(width - 24, 4, 20, 20).build());
 
         switch (activeTab) {
-            case TAB_ITEMS  -> initItemsTab();
-            case TAB_MACROS -> initMacrosTab();
-            case TAB_FARM   -> initFarmTab();
+            case TAB_ITEMS     -> initItemsTab();
+            case TAB_MACROS    -> initMacrosTab();
+            case TAB_FARM      -> initFarmTab();
+            case TAB_INSPECTOR -> initInspectorTab();
         }
     }
 
@@ -417,16 +430,18 @@ public final class CustomCompatScreen extends Screen {
 
         // Active-tab underline
         int tabX = switch (activeTab) {
-            case TAB_ITEMS  -> width / 2 - 160;
-            case TAB_MACROS -> width / 2 - 60;
-            default         -> width / 2 + 40;
+            case TAB_ITEMS     -> width / 2 - 160;
+            case TAB_MACROS    -> width / 2 - 84;
+            case TAB_FARM      -> width / 2 - 8;
+            default            -> width / 2 + 68;
         };
-        ctx.fill(tabX, 34, tabX + 95, 35, 0xFFFFFFFF);
+        ctx.fill(tabX, 34, tabX + (activeTab == TAB_INSPECTOR ? 82 : 72), 35, 0xFFFFFFFF);
 
         switch (activeTab) {
-            case TAB_ITEMS  -> renderItemsTab(ctx, mouseX, mouseY);
-            case TAB_MACROS -> renderMacrosTab(ctx, mouseX, mouseY);
-            case TAB_FARM   -> renderFarmTab(ctx, mouseX, mouseY);
+            case TAB_ITEMS     -> renderItemsTab(ctx, mouseX, mouseY);
+            case TAB_MACROS    -> renderMacrosTab(ctx, mouseX, mouseY);
+            case TAB_FARM      -> renderFarmTab(ctx, mouseX, mouseY);
+            case TAB_INSPECTOR -> renderInspectorTab(ctx, mouseX, mouseY);
         }
     }
 
@@ -635,6 +650,162 @@ public final class CustomCompatScreen extends Screen {
     }
 
     // =========================================================================
+    // Inspector tab — widget init
+    // =========================================================================
+
+    private void initInspectorTab() {
+        DataCollector dc = DataCollector.getInstance();
+        int topY = 40;
+
+        // Scan button
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal("⟳ Scan Now"), b -> {
+                    dc.scan();
+                    inspectorSelectedServer = dc.getLastScanServer();
+                    inspectorScrollOffset = 0;
+                    rebuildWidgets();
+                }).dimensions(10, topY, 90, 20).build());
+
+        // Toggle items/entities view
+        addDrawableChild(
+                ButtonWidget.builder(
+                        Text.literal(inspectorShowEntities ? "Show: Entities" : "Show: Items"),
+                        b -> {
+                            inspectorShowEntities = !inspectorShowEntities;
+                            inspectorScrollOffset = 0;
+                            rebuildWidgets();
+                        }).dimensions(104, topY, 110, 20).build());
+
+        // Clear button
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal("Clear All"), b -> {
+                    dc.clearAll();
+                    inspectorScrollOffset = 0;
+                    rebuildWidgets();
+                }).dimensions(218, topY, 75, 20).build());
+
+        // Scroll arrows
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal("▲"), b -> scrollInspector(-1))
+                        .dimensions(width - 22, 68, 18, 14).build());
+        addDrawableChild(
+                ButtonWidget.builder(Text.literal("▼"), b -> scrollInspector(1))
+                        .dimensions(width - 22, height - 26, 18, 14).build());
+
+        // Server selector buttons (left panel)
+        Set<String> servers = dc.getKnownServers();
+        int sy = 68;
+        for (String s : servers) {
+            final String key = s;
+            String label = s.length() > 18 ? s.substring(0, 15) + "…" : s;
+            addDrawableChild(
+                    ButtonWidget.builder(Text.literal(label), b -> {
+                        inspectorSelectedServer = key;
+                        inspectorScrollOffset = 0;
+                        rebuildWidgets();
+                    }).dimensions(10, sy, 120, 16).build());
+            sy += 18;
+            if (sy + 18 > height - 10) break;
+        }
+    }
+
+    private void scrollInspector(int delta) {
+        DataCollector dc = DataCollector.getInstance();
+        List<String> lines = getInspectorLines(dc);
+        int max = Math.max(0, lines.size() - inspectorVisibleRows());
+        inspectorScrollOffset = Math.max(0, Math.min(max, inspectorScrollOffset + delta));
+    }
+
+    private int inspectorVisibleRows() {
+        return (height - 68 - 30) / 12;
+    }
+
+    private List<String> getInspectorLines(DataCollector dc) {
+        if (inspectorSelectedServer.isEmpty()) return Collections.emptyList();
+        return inspectorShowEntities
+                ? dc.getEntitiesForServer(inspectorSelectedServer)
+                : dc.getItemsForServer(inspectorSelectedServer);
+    }
+
+    // =========================================================================
+    // Inspector tab — rendering
+    // =========================================================================
+
+    private void renderInspectorTab(DrawContext ctx, int mouseX, int mouseY) {
+        DataCollector dc = DataCollector.getInstance();
+        int lx = 10, ly = 66, lw = 134, lh = height - ly - 10;
+        ctx.fill(lx, ly, lx + lw, ly + lh, COL_BG);
+        ctx.drawTextWithShadow(textRenderer, Text.literal("Servers:"), lx + 4, ly + 3, COL_GREY);
+
+        Set<String> servers = dc.getKnownServers();
+        if (servers.isEmpty()) {
+            ctx.drawTextWithShadow(textRenderer, Text.literal("No data yet — click Scan Now."),
+                    lx + 4, ly + 16, COL_DARK);
+        } else {
+            int sy = ly + 16;
+            for (String s : servers) {
+                boolean sel = s.equals(inspectorSelectedServer);
+                ctx.fill(lx, sy, lx + lw, sy + 15, sel ? COL_ROW_SEL : COL_ROW);
+                String label = s.length() > 16 ? s.substring(0, 13) + "…" : s;
+                ctx.drawTextWithShadow(textRenderer, Text.literal(label),
+                        lx + 4, sy + 3, sel ? 0x000000 : COL_WHITE);
+                sy += 17;
+                if (sy + 17 > ly + lh) break;
+            }
+        }
+
+        // Right panel — list of items or entities
+        int rx = lx + lw + 10, ry = 66, rw = width - rx - 10;
+        ctx.fill(rx, ry, rx + rw, ry + (height - ry - 10), COL_BG);
+
+        if (inspectorSelectedServer.isEmpty()) {
+            ctx.drawCenteredTextWithShadow(textRenderer,
+                    Text.literal("Click a server on the left, or scan first."),
+                    rx + rw / 2, ry + (height - ry - 10) / 2, COL_DARK);
+        } else {
+            String kind = inspectorShowEntities ? "Entities" : "Items";
+            ctx.drawTextWithShadow(textRenderer,
+                    Text.literal(kind + "  (" + inspectorSelectedServer + "):"),
+                    rx + 4, ry + 3, COL_GREY);
+
+            List<String> lines = getInspectorLines(dc);
+            if (lines.isEmpty()) {
+                ctx.drawTextWithShadow(textRenderer,
+                        Text.literal("No " + kind.toLowerCase() + " data for this server."),
+                        rx + 4, ry + 16, COL_DARK);
+            } else {
+                int visible = inspectorVisibleRows();
+                int ty = ry + 16;
+                for (int i = inspectorScrollOffset;
+                     i < Math.min(lines.size(), inspectorScrollOffset + visible); i++) {
+                    ctx.drawTextWithShadow(textRenderer, Text.literal(lines.get(i)), rx + 4, ty, COL_WHITE);
+                    ty += 12;
+                }
+                if (lines.size() > visible) {
+                    ctx.drawTextWithShadow(textRenderer,
+                            Text.literal((inspectorScrollOffset + 1)
+                                    + "-" + Math.min(lines.size(), inspectorScrollOffset + visible)
+                                    + " / " + lines.size()),
+                            width - 90, height - 22, COL_DARK);
+                }
+            }
+        }
+
+        // Last-scan status
+        String lastServer = dc.getLastScanServer();
+        if (!lastServer.isEmpty()) {
+            int itemCount   = dc.getLastItems().size();
+            int entityCount = dc.getLastEntities().size();
+            ctx.drawTextWithShadow(textRenderer,
+                    Text.literal("Last scan: " + itemCount + " items, " + entityCount
+                            + " entities  →  config/customcompat_inspector.json"),
+                    10, height - 8, COL_DARK);
+        }
+    }
+
+    // =========================================================================
+    // Inspector tab — mouse scroll
+    // =========================================================================
     // Input handling
     // =========================================================================
 
@@ -692,6 +863,10 @@ public final class CustomCompatScreen extends Screen {
     public boolean mouseScrolled(double mx, double my, double hAmt, double vAmt) {
         if (activeTab == TAB_ITEMS) {
             scrollItems(vAmt < 0 ? 1 : -1);
+            return true;
+        }
+        if (activeTab == TAB_INSPECTOR) {
+            scrollInspector(vAmt < 0 ? 1 : -1);
             return true;
         }
         return super.mouseScrolled(mx, my, hAmt, vAmt);

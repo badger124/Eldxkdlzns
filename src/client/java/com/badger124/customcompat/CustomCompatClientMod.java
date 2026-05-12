@@ -5,6 +5,7 @@ import com.badger124.customcompat.gui.CustomCompatScreen;
 import com.badger124.customcompat.gui.MacroManager;
 import com.badger124.customcompat.gui.farm.CustomFarmingHandler;
 import com.badger124.customcompat.gui.farm.FarmProfileManager;
+import com.badger124.customcompat.inspector.DataCollector;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
@@ -59,6 +60,9 @@ public final class CustomCompatClientMod implements ClientModInitializer {
 
         // Initialize the farm profile manager
         FarmProfileManager.getInstance().initialize(FabricLoader.getInstance().getConfigDir());
+
+        // Initialize the data inspector / collector
+        DataCollector.getInstance().initialize(FabricLoader.getInstance().getConfigDir());
 
         // Register the custom farming handler tick
         ClientTickEvents.END_CLIENT_TICK.register(client -> CustomFarmingHandler.getInstance().tick(client));
@@ -194,6 +198,20 @@ public final class CustomCompatClientMod implements ClientModInitializer {
                                                             ? "[CustomCompat] Baritone stopped."
                                                             : "[CustomCompat] Failed to stop Baritone."));
                                             return stopped ? 1 : 0;
+                                        }))
+
+                                // /customcompat scan
+                                .then(ClientCommandManager.literal("scan")
+                                        .executes(ctx -> {
+                                            DataCollector dc = DataCollector.getInstance();
+                                            dc.scan();
+                                            ctx.getSource().sendFeedback(Text.literal(
+                                                    "[CustomCompat] Scan: "
+                                                            + dc.getLastItems().size() + " items, "
+                                                            + dc.getLastEntities().size() + " entities — "
+                                                            + dc.getLastScanServer()
+                                                            + " (saved to config/customcompat_inspector.json)"));
+                                            return 1;
                                         }))
                 )
         );
