@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "customcompat",
+  "version": "${version}",
+  "name": "Custom Content Compat",
+  "description": "Interoperability layer for server resource-pack custom items and entities in Minecraft 1.21.4.",
+  "authors": ["badger124"],
+  "contact": {
+    "sources": "https://github.com/badger124/Eldxkdlzns"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.badger124.customcompat.CustomCompatMod"
+    ],
+    "client": [
+      "com.badger124.customcompat.CustomCompatClientMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.4"
+  },
+  "suggests": {
+    "baritone": "*"
+  }
+}

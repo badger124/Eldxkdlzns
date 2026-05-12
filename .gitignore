@@ -1,0 +1,20 @@
+# Build output
+build/
+out/
+.gradle/
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.eclipse
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Fabric Loom cache
+.loom-cache/
+run/
