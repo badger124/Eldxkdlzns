@@ -113,7 +113,7 @@ public final class CustomCompatScreen extends Screen {
                         .dimensions(cx - 84, 13, 72, 20).build());
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Farm"), b -> switchTab(TAB_FARM))
-                        .dimensions(cx + -8, 13, 72, 20).build());
+                        .dimensions(cx - 8, 13, 72, 20).build());
         addDrawableChild(
                 ButtonWidget.builder(Text.literal("Inspector"), b -> switchTab(TAB_INSPECTOR))
                         .dimensions(cx + 68, 13, 82, 20).build());
@@ -803,8 +803,6 @@ public final class CustomCompatScreen extends Screen {
         }
     }
 
-    // =========================================================================
-    // Inspector tab — mouse scroll
     // =========================================================================
     // Input handling
     // =========================================================================
