@@ -7,7 +7,9 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 public class ServerDetector {
+    // 최근 메시지 50개면 일반적인 서버 채팅 폭주 상황에서도 판별 문맥을 보존하기에 충분하다.
     private static final int MAX_RECENT_TEXTS = 50;
+    // 최근 5초만 신뢰해 오래된 채팅이 서버 판별에 섞이지 않게 한다.
     private static final long TEXT_KEEP_MS = 5000;
 
     private final Deque<TimedText> recentTexts = new ArrayDeque<>();

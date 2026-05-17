@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Set;
 
 public class ChestRegistry {
+    // 상자 순회/저장 비용과 채팅 가독성을 고려해 등록 개수를 10개로 제한한다.
     private static final int MAX_CHESTS = 10;
     private static final Path CHEST_SAVE_PATH = Path.of("config", "farm_chests.txt");
 

@@ -16,6 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AutoFarmController {
+    private static final int FARM_RESTART_INTERVAL_TICKS = 200; // 10초(20tps 기준)마다 farm 재탐색
+    private static final double CHEST_ARRIVAL_DISTANCE_SQ = 12.25; // 약 3.5블록 이내면 상자 도착으로 판정
+    private static final int DEPOSIT_SYNC_WAIT_TICKS = 10; // quick-move 반영 대기(약 0.5초)
+
     private final ServerDetector serverDetector;
     private final ChestRegistry chestRegistry;
 
@@ -92,7 +96,7 @@ public class AutoFarmController {
             // 일정 주기로 Baritone farm 재호출해서 탐색이 멈춘 케이스를 복구한다.
             farmRestartTicks++;
 
-            if (farmRestartTicks >= 200) {
+            if (farmRestartTicks >= FARM_RESTART_INTERVAL_TICKS) {
                 farmRestartTicks = 0;
 
                 BaritoneBridge.startFarm(64);
@@ -152,7 +156,7 @@ public class AutoFarmController {
         if (autoState == AutoState.GOING_TO_CHEST) {
             double distance = client.player.blockPosition().distSqr(targetChest);
 
-            if (distance <= 12.25) {
+            if (distance <= CHEST_ARRIVAL_DISTANCE_SQ) {
                 BaritoneBridge.cancel();
                 autoState = AutoState.OPENING_CHEST;
                 openWaitTicks = 0;
@@ -219,7 +223,7 @@ public class AutoFarmController {
         if (autoState == AutoState.WAIT_AFTER_DEPOSIT) {
             depositWaitTicks++;
 
-            if (depositWaitTicks < 10) {
+            if (depositWaitTicks < DEPOSIT_SYNC_WAIT_TICKS) {
                 return;
             }
 
